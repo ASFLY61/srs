@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2013-2021 The SRS Authors
+// Copyright (c) 2013-2025 The SRS Authors
 //
 // SPDX-License-Identifier: MIT
 //
@@ -13,7 +13,7 @@
 #include <srs_utest.hpp>
 
 #include <srs_app_st.hpp>
-#include <srs_service_conn.hpp>
+#include <srs_protocol_conn.hpp>
 
 class MockSrsConnection : public ISrsConnection
 {

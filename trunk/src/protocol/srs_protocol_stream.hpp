@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2013-2021 The SRS Authors
+// Copyright (c) 2013-2025 The SRS Authors
 //
 // SPDX-License-Identifier: MIT
 //
@@ -56,7 +56,6 @@ private:
 #endif
     // the user-space buffer to fill by reader,
     // which use fast index and reset when chunk body read ok.
-    // @see https://github.com/ossrs/srs/issues/248
     // ptr to the current read position.
     char* p;
     // ptr to the content end.

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2013-2021 The SRS Authors
+// Copyright (c) 2013-2025 The SRS Authors
 //
 // SPDX-License-Identifier: MIT
 //
@@ -19,10 +19,10 @@ using namespace std;
 #include <srs_kernel_log.hpp>
 #include <srs_app_config.hpp>
 #include <srs_app_pithy_print.hpp>
-#include <srs_rtmp_stack.hpp>
+#include <srs_protocol_rtmp_stack.hpp>
 #include <srs_protocol_utility.hpp>
 #include <srs_protocol_kbps.hpp>
-#include <srs_rtmp_msg_array.hpp>
+#include <srs_protocol_rtmp_msg_array.hpp>
 #include <srs_app_utility.hpp>
 #include <srs_protocol_amf0.hpp>
 #include <srs_kernel_codec.hpp>
@@ -52,6 +52,8 @@ SrsForwarder::~SrsForwarder()
     
     srs_freep(sh_video);
     srs_freep(sh_audio);
+    
+    srs_freep(req);
 }
 
 srs_error_t SrsForwarder::initialize(SrsRequest* r, string ep)
@@ -60,10 +62,13 @@ srs_error_t SrsForwarder::initialize(SrsRequest* r, string ep)
     
     // it's ok to use the request object,
     // SrsLiveSource already copy it and never delete it.
-    req = r;
+    req = r->copy();
     
     // the ep(endpoint) to forward to
     ep_forward = ep;
+
+    // Remember the source context id.
+    source_cid_ = _srs_context->get_id();
     
     return err;
 }
@@ -89,7 +94,7 @@ srs_error_t SrsForwarder::on_publish()
 void SrsForwarder::on_unpublish()
 {
     trd->stop();
-    sdk->close();
+    if (sdk) sdk->close();
 }
 
 srs_error_t SrsForwarder::on_meta_data(SrsSharedPtrMessage* shared_metadata)
@@ -162,7 +167,10 @@ srs_error_t SrsForwarder::on_video(SrsSharedPtrMessage* shared_video)
 srs_error_t SrsForwarder::cycle()
 {
     srs_error_t err = srs_success;
-    
+
+    srs_trace("Forwarder: Start forward %s of source=[%s] to %s",
+        req->get_stream_url().c_str(), source_cid_.c_str(), ep_forward.c_str());
+
     while (true) {
         // We always check status first.
         // @see https://github.com/ossrs/srs/issues/1634#issuecomment-597571561
@@ -238,10 +246,9 @@ srs_error_t SrsForwarder::forward()
     srs_error_t err = srs_success;
     
     sdk->set_recv_timeout(SRS_CONSTS_RTMP_PULSE);
-    
-    SrsPithyPrint* pprint = SrsPithyPrint::create_forwarder();
-    SrsAutoFree(SrsPithyPrint, pprint);
-    
+
+    SrsUniquePtr<SrsPithyPrint> pprint(SrsPithyPrint::create_forwarder());
+
     SrsMessageArray msgs(SYS_MAX_FORWARD_SEND_MSGS);
     
     // update sequence header

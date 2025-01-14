@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2013-2021 The SRS Authors
+// Copyright (c) 2013-2025 The SRS Authors
 //
 // SPDX-License-Identifier: MIT
 //
@@ -474,8 +474,7 @@ SrsRtcpRR::SrsRtcpRR(uint32_t sender_ssrc)
     header_.version = kRtcpVersion;
     header_.length = 7;
     ssrc_ = sender_ssrc;
-    // TODO: FIXME: Fix warning.
-    memset(&rb_, 0, sizeof(SrsRtcpRB));
+    memset((void*)&rb_, 0, sizeof(SrsRtcpRB));
 }
 
 SrsRtcpRR::~SrsRtcpRR()
@@ -718,10 +717,6 @@ void SrsRtcpTWCC::clear()
     next_base_sn_ = 0;
 }
 
-uint32_t SrsRtcpTWCC::get_media_ssrc() const
-{
-    return media_ssrc_;
-}
 uint16_t SrsRtcpTWCC::get_base_sn() const
 {
     return base_sn_;
@@ -747,10 +742,6 @@ vector<uint16_t> SrsRtcpTWCC::get_recv_deltas() const
     return pkt_deltas_;
 }
 
-void SrsRtcpTWCC::set_media_ssrc(uint32_t ssrc)
-{
-    media_ssrc_ = ssrc;
-}
 void SrsRtcpTWCC::set_base_sn(uint16_t sn)
 {
     base_sn_ = sn;
@@ -1218,11 +1209,6 @@ SrsRtcpNack::~SrsRtcpNack()
 {
 }
 
-uint32_t SrsRtcpNack::get_media_ssrc() const
-{
-    return media_ssrc_;
-}
-
 vector<uint16_t> SrsRtcpNack::get_lost_sns() const
 {
     vector<uint16_t> sn;
@@ -1235,11 +1221,6 @@ vector<uint16_t> SrsRtcpNack::get_lost_sns() const
 bool SrsRtcpNack::empty()
 {
     return lost_sns_.empty();
-}
-
-void SrsRtcpNack::set_media_ssrc(uint32_t ssrc)
-{
-    media_ssrc_ = ssrc;
 }
 
 void SrsRtcpNack::add_lost_sn(uint16_t sn)
@@ -1346,9 +1327,11 @@ srs_error_t SrsRtcpNack::encode(SrsBuffer *buffer)
             if((sn - pid) < 1) {
                 srs_info("skip seq %d", sn);
             } else if( (sn - pid) > 16) {
-                // add new chunk
+                // append full chunk
                 chunks.push_back(chunk);
-		chunk.pid = sn;
+
+                // start new chunk
+                chunk.pid = sn;
                 chunk.blp = 0;
                 chunk.in_use = true;
                 pid = sn;
@@ -1376,7 +1359,7 @@ srs_error_t SrsRtcpNack::encode(SrsBuffer *buffer)
     return err;
 }
 
-SrsRtcpPsfbCommon::SrsRtcpPsfbCommon()
+SrsRtcpFbCommon::SrsRtcpFbCommon()
 {
     header_.padding = 0;
     header_.type = SrsRtcpType_psfb;
@@ -1385,22 +1368,22 @@ SrsRtcpPsfbCommon::SrsRtcpPsfbCommon()
     //ssrc_ = sender_ssrc;
 }
 
-SrsRtcpPsfbCommon::~SrsRtcpPsfbCommon()
+SrsRtcpFbCommon::~SrsRtcpFbCommon()
 {
 
 }
 
-uint32_t SrsRtcpPsfbCommon::get_media_ssrc() const
+uint32_t SrsRtcpFbCommon::get_media_ssrc() const
 {
     return media_ssrc_;
 }
 
-void SrsRtcpPsfbCommon::set_media_ssrc(uint32_t ssrc)
+void SrsRtcpFbCommon::set_media_ssrc(uint32_t ssrc)
 {
     media_ssrc_ = ssrc;
 }
 
-srs_error_t SrsRtcpPsfbCommon::decode(SrsBuffer *buffer)
+srs_error_t SrsRtcpFbCommon::decode(SrsBuffer *buffer)
 {
     /*
     @doc: https://tools.ietf.org/html/rfc4585#section-6.1
@@ -1431,12 +1414,12 @@ srs_error_t SrsRtcpPsfbCommon::decode(SrsBuffer *buffer)
     return err;
 }
 
-uint64_t SrsRtcpPsfbCommon::nb_bytes()
+uint64_t SrsRtcpFbCommon::nb_bytes()
 {
     return kRtcpPacketSize;
 }
 
-srs_error_t SrsRtcpPsfbCommon::encode(SrsBuffer *buffer)
+srs_error_t SrsRtcpFbCommon::encode(SrsBuffer *buffer)
 {
     return srs_error_new(ERROR_RTC_RTCP, "not support");
 }
@@ -1761,6 +1744,9 @@ srs_error_t SrsRtcpCompound::decode(SrsBuffer *buffer)
             } else if (15 == header->rc) {
                 //twcc
                 rtcp = new SrsRtcpTWCC();
+            } else {
+                // common fb
+                rtcp = new SrsRtcpFbCommon();
             }
         } else if(header->type == SrsRtcpType_psfb) {
             if(1 == header->rc) {
@@ -1774,7 +1760,7 @@ srs_error_t SrsRtcpCompound::decode(SrsBuffer *buffer)
                 rtcp = new SrsRtcpRpsi();
             } else {
                 // common psfb
-                rtcp = new SrsRtcpPsfbCommon();
+                rtcp = new SrsRtcpFbCommon();
             }
         } else if(header->type == SrsRtcpType_xr) {
             rtcp = new SrsRtcpXr();

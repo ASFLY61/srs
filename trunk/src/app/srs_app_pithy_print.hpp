@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2013-2021 The SRS Authors
+// Copyright (c) 2013-2025 The SRS Authors
 //
 // SPDX-License-Identifier: MIT
 //
@@ -94,8 +94,7 @@ public:
 // if there is 1client, it will print every 3s.
 // if there is 10clients, random select one to print every 3s.
 // Usage:
-//        SrsPithyPrint* pprint = SrsPithyPrint::create_rtmp_play();
-//        SrsAutoFree(SrsPithyPrint, pprint);
+//        SrsUniquePtr<SrsPithyPrint> pprint(SrsPithyPrint::create_rtmp_play());
 //        while (true) {
 //            pprint->elapse();
 //            if (pprint->can_print()) {
@@ -130,6 +129,10 @@ public:
     // For RTC sender and receiver, we create printer for each fd.
     static SrsPithyPrint* create_rtc_send(int fd);
     static SrsPithyPrint* create_rtc_recv(int fd);
+#ifdef SRS_SRT
+    static SrsPithyPrint* create_srt_play();
+    static SrsPithyPrint* create_srt_publish();
+#endif
     virtual ~SrsPithyPrint();
 private:
     // Enter the specified stage, return the client id.
