@@ -2,39 +2,33 @@
 name: Bug report
 about: Create a report to help us improve
 title: ''
-labels: ''
+labels: bug
 assignees: ''
 
 ---
 
-> 注意：提问前，请先看FAQ(Please read FAQ before file an issue) https://github.com/ossrs/srs/issues/2716
+!!! Before submitting a new bug report, please ensure you have searched for any existing bugs. Duplicate issues or 
+questions that are overly simple or already addressed in the documentation will be removed without any 
+response.
 
-**描述(Description)**
+**Describe the bug**
+A clear and concise description of what the bug is.
 
-> 描述你遇到了什么问题(Please description your issue here)
+**Version**
+Desribe your SRS Server version here.
 
-1. SRS版本(Version): `xxxxxx`
+**To Reproduce**
+Steps to reproduce the behavior:
+1. Go to '...'
+2. Click on '....'
+3. Scroll down to '....'
+4. See error
 
-1. SRS的日志如下(Log):
+**Expected behavior**
+A clear and concise description of what you expected to happen.
 
-```
-xxxxxxxxxxxx
-```
+**Screenshots**
+If applicable, add screenshots to help explain your problem.
 
-1. SRS的配置如下(Config):
-
-```
-xxxxxxxxxxxx
-```
-
-**重现(Replay)**
-
-> 重现Bug的步骤(How to replay bug?)
-
-1. `xxxxxx`
-1. `xxxxxx`
-1. `xxxxxx`
-
-**期望行为(Expect)**
-
-> 描述你期望发生的事情(Please describe your expectation)
+**Additional context**
+Add any other context about the problem here.

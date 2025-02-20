@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2013-2021 The SRS Authors
+// Copyright (c) 2013-2025 The SRS Authors
 //
 // SPDX-License-Identifier: MIT
 //
@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #include <vector>
 #include <algorithm>
@@ -27,6 +28,7 @@ using namespace std;
 #include <srs_kernel_error.hpp>
 #include <srs_kernel_buffer.hpp>
 #include <srs_kernel_flv.hpp>
+#include <srs_core_deprecated.hpp>
 
 // this value must:
 // equals to (SRS_SYS_CYCLE_INTERVAL*SRS_SYS_TIME_RESOLUTION_MS_TIMES)*1000
@@ -155,7 +157,7 @@ string srs_dns_resolve(string host, int& family)
     hints.ai_family = family;
     
     addrinfo* r = NULL;
-    SrsAutoFree(addrinfo, r);
+    SrsAutoFreeH(addrinfo, r, freeaddrinfo);
     if(getaddrinfo(host.c_str(), NULL, &hints, &r)) {
         return "";
     }
@@ -275,17 +277,14 @@ bool srs_check_ip_addr_valid(string ip)
 
 string srs_int2str(int64_t value)
 {
-    // len(max int64_t) is 20, plus one "+-."
-    char tmp[22];
-    snprintf(tmp, 22, "%" PRId64, value);
-    return tmp;
+    return srs_fmt("%" PRId64, value);
 }
 
 string srs_float2str(double value)
 {
     // len(max int64_t) is 20, plus one "+-."
-    char tmp[22];
-    snprintf(tmp, 22, "%.2f", value);
+    char tmp[21 + 1];
+    snprintf(tmp, sizeof(tmp), "%.2f", value);
     return tmp;
 }
 
@@ -552,6 +551,23 @@ vector<string> srs_string_split(string str, vector<string> seperators)
     }
     
     return arr;
+}
+
+std::string srs_fmt(const char* fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+
+    static char buf[8192];
+    int r0 = vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+
+    string v;
+    if (r0 > 0 && r0 < (int)sizeof(buf)) {
+        v.append(buf, r0);
+    }
+
+    return v;
 }
 
 int srs_do_create_dir_recursively(string dir)
@@ -1041,7 +1057,6 @@ srs_error_t srs_av_base64_encode(std::string plaintext, std::string& cipher)
     cipher.clear();
 
     uint32_t val = 0;
-    int di = 0;
     int si = 0;
     int n = (plaintext.length() / 3) * 3;
     uint8_t* p =  (uint8_t*)plaintext.c_str();
@@ -1055,7 +1070,6 @@ srs_error_t srs_av_base64_encode(std::string plaintext, std::string& cipher)
         cipher += encoder[val&0x3f];
 
         si += 3;
-        di += 4;
     }
 
     int remain = plaintext.length() - si;
@@ -1167,7 +1181,7 @@ int srs_hex_to_data(uint8_t* data, const char* p, int size)
     return size / 2;
 }
 
-int srs_chunk_header_c0(int perfer_cid, uint32_t timestamp, int32_t payload_length, int8_t message_type, int32_t stream_id, char* cache, int nb_cache)
+int srs_chunk_header_c0(int prefer_cid, uint32_t timestamp, int32_t payload_length, int8_t message_type, int32_t stream_id, char* cache, int nb_cache)
 {
     // to directly set the field.
     char* pp = NULL;
@@ -1181,7 +1195,7 @@ int srs_chunk_header_c0(int perfer_cid, uint32_t timestamp, int32_t payload_leng
     }
     
     // write new chunk stream header, fmt is 0
-    *p++ = 0x00 | (perfer_cid & 0x3F);
+    *p++ = 0x00 | (prefer_cid & 0x3F);
     
     // chunk message header, 11 bytes
     // timestamp, 3bytes, big-endian
@@ -1242,7 +1256,7 @@ int srs_chunk_header_c0(int perfer_cid, uint32_t timestamp, int32_t payload_leng
     return (int)(p - cache);
 }
 
-int srs_chunk_header_c3(int perfer_cid, uint32_t timestamp, char* cache, int nb_cache)
+int srs_chunk_header_c3(int prefer_cid, uint32_t timestamp, char* cache, int nb_cache)
 {
     // to directly set the field.
     char* pp = NULL;
@@ -1256,9 +1270,9 @@ int srs_chunk_header_c3(int perfer_cid, uint32_t timestamp, char* cache, int nb_
     }
     
     // write no message header chunk stream, fmt is 3
-    // @remark, if perfer_cid > 0x3F, that is, use 2B/3B chunk header,
+    // @remark, if prefer_cid > 0x3F, that is, use 2B/3B chunk header,
     // SRS will rollback to 1B chunk header.
-    *p++ = 0xC0 | (perfer_cid & 0x3F);
+    *p++ = 0xC0 | (prefer_cid & 0x3F);
     
     // for c0
     // chunk extended timestamp header, 0 or 4 bytes, big-endian

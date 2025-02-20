@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2013-2021 The SRS Authors
+// Copyright (c) 2013-2025 The SRS Authors
 //
 // SPDX-License-Identifier: MIT
 //
@@ -11,10 +11,10 @@ using namespace std;
 
 #include <srs_protocol_json.hpp>
 #include <srs_kernel_error.hpp>
-#include <srs_rtmp_stack.hpp>
+#include <srs_protocol_rtmp_stack.hpp>
 #include <srs_app_config.hpp>
 #include <srs_protocol_utility.hpp>
-#include <srs_service_utility.hpp>
+#include <srs_protocol_utility.hpp>
 #include <srs_kernel_utility.hpp>
 
 SrsCoWorkers* SrsCoWorkers::_instance = NULL;
@@ -122,7 +122,7 @@ SrsRequest* SrsCoWorkers::find_stream_info(string vhost, string app, string stre
     return it->second;
 }
 
-srs_error_t SrsCoWorkers::on_publish(SrsLiveSource* s, SrsRequest* r)
+srs_error_t SrsCoWorkers::on_publish(SrsRequest* r)
 {
     srs_error_t err = srs_success;
     
@@ -140,7 +140,7 @@ srs_error_t SrsCoWorkers::on_publish(SrsLiveSource* s, SrsRequest* r)
     return err;
 }
 
-void SrsCoWorkers::on_unpublish(SrsLiveSource* s, SrsRequest* r)
+void SrsCoWorkers::on_unpublish(SrsRequest* r)
 {
     string url = r->get_stream_url();
     

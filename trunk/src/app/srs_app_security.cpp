@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2013-2021 The SRS Authors
+// Copyright (c) 2013-2025 The SRS Authors
 //
 // SPDX-License-Identifier: MIT
 //
@@ -70,13 +70,22 @@ srs_error_t SrsSecurity::allow_check(SrsConfDirective* rules, SrsRtmpConnType ty
         }
         allow_rules++;
 
+        string cidr_ipv4 = srs_get_cidr_ipv4(rule->arg1());
+        string cidr_mask = srs_get_cidr_mask(rule->arg1());
+
         switch (type) {
             case SrsRtmpConnPlay:
-            case SrsRtcConnPlay:
+            case SrsHlsPlay:
+            case SrsFlvPlay:
+            case SrsRtcConnPlay: 
+            case SrsSrtConnPlay:
                 if (rule->arg0() != "play") {
                     break;
                 }
                 if (rule->arg1() == "all" || rule->arg1() == ip) {
+                    return srs_success; // OK
+                }
+                if (srs_is_ipv4(cidr_ipv4) && cidr_mask != "" && srs_ipv4_within_mask(ip, cidr_ipv4, cidr_mask)) {
                     return srs_success; // OK
                 }
                 break;
@@ -84,10 +93,14 @@ srs_error_t SrsSecurity::allow_check(SrsConfDirective* rules, SrsRtmpConnType ty
             case SrsRtmpConnFlashPublish:
             case SrsRtmpConnHaivisionPublish:
             case SrsRtcConnPublish:
+            case SrsSrtConnPublish:
                 if (rule->arg0() != "publish") {
                     break;
                 }
                 if (rule->arg1() == "all" || rule->arg1() == ip) {
+                    return srs_success; // OK
+                }
+                if (srs_is_ipv4(cidr_ipv4) && cidr_mask != "" && srs_ipv4_within_mask(ip, cidr_ipv4, cidr_mask)) {
                     return srs_success; // OK
                 }
                 break;
@@ -111,14 +124,23 @@ srs_error_t SrsSecurity::deny_check(SrsConfDirective* rules, SrsRtmpConnType typ
         if (rule->name != "deny") {
             continue;
         }
+
+        string cidr_ipv4 = srs_get_cidr_ipv4(rule->arg1());
+        string cidr_mask = srs_get_cidr_mask(rule->arg1());
         
         switch (type) {
             case SrsRtmpConnPlay:
-            case SrsRtcConnPlay:               
+            case SrsHlsPlay:
+            case SrsFlvPlay:
+            case SrsRtcConnPlay: 
+            case SrsSrtConnPlay:
                 if (rule->arg0() != "play") {
                     break;
                 }
                 if (rule->arg1() == "all" || rule->arg1() == ip) {
+                    return srs_error_new(ERROR_SYSTEM_SECURITY_DENY, "deny by rule<%s>", rule->arg1().c_str());
+                }
+                if (srs_is_ipv4(cidr_ipv4) && cidr_mask != "" && srs_ipv4_within_mask(ip, cidr_ipv4, cidr_mask)) {
                     return srs_error_new(ERROR_SYSTEM_SECURITY_DENY, "deny by rule<%s>", rule->arg1().c_str());
                 }
                 break;
@@ -126,10 +148,14 @@ srs_error_t SrsSecurity::deny_check(SrsConfDirective* rules, SrsRtmpConnType typ
             case SrsRtmpConnFlashPublish:
             case SrsRtmpConnHaivisionPublish:
             case SrsRtcConnPublish:
+            case SrsSrtConnPublish:
                 if (rule->arg0() != "publish") {
                     break;
                 }
                 if (rule->arg1() == "all" || rule->arg1() == ip) {
+                    return srs_error_new(ERROR_SYSTEM_SECURITY_DENY, "deny by rule<%s>", rule->arg1().c_str());
+                }
+                if (srs_is_ipv4(cidr_ipv4) && cidr_mask != "" && srs_ipv4_within_mask(ip, cidr_ipv4, cidr_mask)) {
                     return srs_error_new(ERROR_SYSTEM_SECURITY_DENY, "deny by rule<%s>", rule->arg1().c_str());
                 }
                 break;
